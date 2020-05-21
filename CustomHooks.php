@@ -61,6 +61,7 @@ if (getenv('LDAP_SERVER') || getenv('LDAP_BASE_DN') || getenv('LDAP_SEARCH_STRIN
             if (!_create_cwl_extended_account_data($new_user_id, $puid, $cwl_login_name, $ubcAffiliation, $real_name)) {
                 throw new Exception('Failed to create CWL extended data record');
             }
+            $_SESSION['LDAP_IS_NEW_USER'] = true;
 
         } catch (Exception $e) {
             // failed to create new user
@@ -68,6 +69,20 @@ if (getenv('LDAP_SERVER') || getenv('LDAP_BASE_DN') || getenv('LDAP_SEARCH_STRIN
             throw new MWException('Failed to create new wiki user');
         }
         return $wiki_username;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////
+
+    # if defined, redirect new users to welcome page
+    if (getenv('LDAP_NEW_USER_REDIRECT_TO')) {
+        $wgHooks['PostLoginRedirect'][] = 'onPostLoginRedirect';
+        function onPostLoginRedirect(&$returnTo, &$returnToQuery, &$type) {
+            if ($_SESSION['LDAP_IS_NEW_USER'] && $type == 'successredirect') {
+                unset($_SESSION['LDAP_IS_NEW_USER']);
+                $returnTo = getenv('LDAP_NEW_USER_REDIRECT_TO');
+            }
+            return true;
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////////
